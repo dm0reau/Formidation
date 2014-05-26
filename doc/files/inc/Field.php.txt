@@ -1,0 +1,217 @@
+<?php
+	/**
+	 * Représente un champ dans un formulaire.
+	 */
+	class Field {
+		//Attribut name du champ
+		private $name;
+		//Label du champ
+		private $label;
+        //Valeur du champ
+        private $value;
+		//Règles de validation du champ
+		private $rules;
+        //Filtres du champ
+        private $filters;
+		//Règles personnalisées de validation
+		private $custom_rules;
+        //Filtres personnalisés
+        private $custom_filters;
+
+		/**
+		 * @param string $name L'attribut name du champ.
+		 * @param string $label Le nom littéral du champ.
+		 */
+		public function __construct($name, $label) {
+			$this->setName($name);
+			$this->setLabel($label);
+            $this->value = $_POST[$name];
+			$this->custom_rules = array();
+
+            $this->rules = null;
+            $this->filters = null;
+		}
+
+		/**
+		 * @return string $name L'attribut name du champ.
+		 */
+		public function getName() { return $this->name; }
+
+		/**
+		 * @return string $label Le nom littéral du champ.
+		 */
+		public function getLabel() { return $this->label; }
+
+        /**
+         * @return string $value La valeur du champ.
+         */
+        public function getValue() { return $this->value; }
+
+		/**
+		 * @return string $rules Les règles de validation dans une chaîne sous la forme "regle1|regle2|regle3[parametre]" OU null si aucune règle n'a été renseignée.
+		 */
+		public function getRules() { return $this->rules; }
+
+        /**
+         * @return string $filters Les filtres à appliquer au champ, dans une chaîne sous la forme "filtre1|filtre2|filtre3[parametre]" OU null si
+         * aucune règle n'a été renseignée.
+         */
+        public function getFilters() { return $this->filters; }
+
+        /**
+         * Donne les filtres personnalisés.
+		 * @return array $custom_filters Tableau contenant les fonctions de filtre.
+		 */
+        public function getCustomFilters() { return $this->custom_filters; }
+
+		/**
+		 * Donne les règles personnalisées de validation.
+		 * @return array $custom_rules Tableau à deux dimensions associatif, le tableau associatif étant donné sous le format suivant pour :
+		 			function : La fonction de la règle.
+					error : Le message d'erreur à afficher.
+		 */
+		public function getCustomRules() { return $this->custom_rules; }
+
+		/**
+		 * @param string $name L'attribut name du champ.
+		 */
+		public function setName($name) {
+			if ( ! isset($_POST[$name]) && ! isset($_GET[$name])) {
+				throw new Exception('Le champ '.$name.' n\'existe pas.');
+			}
+			$this->name = $name;
+		}
+		
+		/**
+		 * @param string $label Le nom littéral du champ.
+		 */
+		public function setLabel($label) {
+			$this->label = $label;
+		}
+
+        /**
+         * @param string La valeur du champ à attribuer.
+         */
+        public function setValue($value) {
+            $_POST[$this->getName()] = $value;
+            $this->value = $value;
+        }
+
+        /**
+		 * Définition de règles de validation.
+		 * @param string $rules Les règles de validation dans une chaîne sous la forme "regle1|regle2|regle3[parametre]"
+		 */
+		public function setRules($rules) {
+			if ( ! preg_match('^([a-z_-]+(\[[a-z0-9]+\])?\|?)+^', $rules)) {
+				throw new Exception('Format utilisé pour les règles de validation incorrect.');
+			}
+			$this->rules = $rules;
+		}
+
+		/**
+		 * Ajout d'une règle de validation au champ.
+		 * @param string $rule La règle de validation sous la forme "regle" OU "regle[parametre]"
+		 */
+		public function addRule($rule) {
+			if ( ! preg_match('^[a-z_-]+(\[[a-z0-9]+\])?^', $rule)) {
+				throw new Exception('Format utilisé pour la règle de validation incorrect.');
+			}
+			if ($this->rules !== null) {
+				$this->rules .= '|'.$rule;
+			} else {
+				$this->rules = $rule;
+			}
+		}
+
+        /**
+         * Dit si le champ a des règles de validation.
+         * @return bool
+         */
+        public function hasRules() {
+            if ($this->rules === null) {
+                return false;
+            }
+            return true;
+        }
+
+		/** 
+		 * Ajout d'une règle personnalisée de validation.
+		 * @param Callable $rule Une fonction renvoyant true ou false.
+		 * @param string $error Le message d'erreur à afficher si la fonction renvoie false.
+		 */
+		public function addCustomRule(Callable $rule, $error) {
+            $rule_array = array(
+                'function' => $rule,
+                'error' => $error);
+			$this->custom_rules[] = $rule_array;
+		}
+
+		/**
+		 * Dit si le champ a des règles de validation personnalisées.
+		 * @return bool
+		 */
+		public function hasCustomRules() {
+			if (count($this->custom_rules) > 0) {
+				return true;
+			}
+			return false;
+		}
+
+        /**
+         * Définition des filtres.
+         * @param string $filters Les filtres dans une chaîne sous la forme "filtre1|filtre2|filtre3[parametre]"
+         */
+        public function setFilters($filters) {
+			if ( ! preg_match('^([a-z_-]+(\[[a-z0-9]+\])?\|?)+^', $filters)) {
+				throw new Exception('Format utilisé pour les filtres incorrect.');
+			}
+			$this->filters = $filters;
+        }
+
+        /**
+         * Ajout d'un filtre.
+		 * @param string $filter Le filtre sous la forme "filtre" OU "filtre[parametre]"
+		 */
+		public function addFilter($filter) {
+			if ( ! preg_match('^[a-z_-]+(\[[a-z0-9]+\])?^', $filter)) {
+				throw new Exception('Format utilisé pour le filtre incorrect.');
+			}
+
+            if ($this->filters !== null) {
+                $this->filters .= '|'.$filter;
+            } else {
+                $this->filters = $filter;
+            }
+        }
+
+		/** 
+		 * Ajout d'une règle personnalisée de validation.
+		 * @param Callable $filter Une fonction renvoyant la nouvelle valeur du champ.
+		 */
+		public function addCustomFilter(Callable $filter) {
+			$this->custom_filters[] = $filter;
+		}
+
+        /**
+         * Dit si le champ a des filtres personnalisés.
+         * @return bool
+         */
+        public function hasCustomFilters() {
+            if (count($this->custom_filters) > 0) {
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * Dit si le champ a des filtres.
+         * @return bool
+         */
+        public function hasFilters() {
+            if ($this->filters === null) {
+                return false;
+            }
+            return true;
+        }
+	}
+
