@@ -1,7 +1,14 @@
 Formidation
 ===========
 
-Standalone validation form library, inspired by CodeIgniter's one.
+Standalone form validation library in PHP, inspired by CodeIgniter's one.
+
+
+Required
+--------
+
+* PHP >= 5.3
+* Nothing else
 
 Usage
 -----
